@@ -2,7 +2,7 @@
 Working mongodb replica sets with kubernetes
 
 
-First generate a secret using the generate secret script
+First generate a secret using the generate secret script `sh generate-secret.sh`
 
 ```
 kubectl create -f mongodb.yaml
@@ -16,9 +16,6 @@ kubectl delete statefulsets mongod --force --grace-period=0 --cascade=false;
 kubectl delete services mongodb-service;
 kubectl delete pods all --grace-period=0 --force;
 ```
-
-When you run `kubectl logs mongod-0` you should now see the correct permissions on the file.
-This will be fully working within a few hours, just gonna eat first.
 
 
 The majority of the yaml is based on:
