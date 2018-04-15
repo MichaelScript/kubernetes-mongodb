@@ -17,6 +17,7 @@ kubectl delete services mongodb-service;
 kubectl delete pods all --grace-period=0 --force;
 ```
 
+When you run `kubectl logs mongod-0` you should now see the correct permissions on the file.
 
 The majority of the yaml is based on:
 https://pauldone.blogspot.com/2017/06/deploying-mongodb-on-kubernetes-gke25.html
