@@ -53,10 +53,10 @@ spec:
               --replSet MainRepSet --auth --clusterAuthMode keyFile
               --keyFile /etc/secrets-volume/mongosecret
               --setParameter authenticationMechanisms=SCRAM-SHA-1
-          resources:
-            requests:
-              cpu: 1
-              memory: 300Mi
+          # resources:
+          #   requests:
+          #     cpu: 1
+          #     memory: 300Mi
           ports:
             - containerPort: 27017
           volumeMounts:
