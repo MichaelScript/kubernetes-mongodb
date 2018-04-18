@@ -27,6 +27,8 @@ spec:
         replicaset: MainRepSet
     spec:
       affinity:
+        # This is to prevent mongodb replicas from ending up on the same
+        # host machine
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
@@ -43,16 +45,59 @@ spec:
         - name: mongod-container
           #image: pkdone/mongo-ent:3.4
           image: mongo
+          imagePullPolicy: Always
+          env:
+          - name: STATEFULSET_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MACHINE_MEMORY
+            value: &machineMemory "500Mi"
+          # We can change this to a secret
+          - name: MONGO_USER
+            value: "admin"
+          - name: MONGO_PASSWORD
+            value: "abc123changeme"
           command:
             - "bash"
             - "-c"
-            # - >
-            #   ls -l /etc/secrets-volume
-            - >
-              mongod --wiredTigerCacheSizeGB 0.25 --bind_ip 0.0.0.0
-              --replSet MainRepSet --auth --clusterAuthMode keyFile
-              --keyFile /etc/secrets-volume/mongosecret
-              --setParameter authenticationMechanisms=SCRAM-SHA-1
+            #the default cache size guidance is: "50% of RAM minus 1 GB, or 256 MB"
+            # Which is why the wired tiger cache size is this way. This assumes 2gb of memory
+            # on the host machine. The plan is to change 0.25 to a calculated value
+            # by passing an environment variable that contains the host machines memory
+            # and automatically "personalizing" mongo to the machine its running on
+            - |
+              numactl --interleave=all mongod --wiredTigerCacheSizeGB 0.25 --bind_ip 0.0.0.0 \
+              --replSet MainRepSet --auth --clusterAuthMode keyFile \
+              --keyFile /etc/secrets-volume/mongosecret \
+              --setParameter authenticationMechanisms=SCRAM-SHA-1 \
+              --fork --logpath /var/log/mongod.log \
+              &&
+              if [ $STATEFULSET_NAME == "mongod-0" ];
+              then
+                initiated=0
+                replica_exists=false
+                while [ "$replica_exists" != true ]
+                do
+                  # Need to check to make sure that the other pods are currently up
+                  initiated=`mongo --quiet --eval 'rs.initiate({_id: "MainRepSet", version: 1, members: [
+                         { _id: 0, host : "mongod-0.mongodb-service.default.svc.cluster.local:27017" },
+                         { _id: 1, host : "mongod-1.mongodb-service.default.svc.cluster.local:27017" },
+                         { _id: 2, host : "mongod-2.mongodb-service.default.svc.cluster.local:27017" }
+                   ]})["ok"]'`;
+                  replica_exists=`mongo --quiet --eval 'db.isMaster()["ismaster"]'`;
+                   # Shit we need to check rs status i think instead
+                  echo "Replica exists: " $replica_exists;
+                  sleep 2
+                done
+                # If everything else is workign then we need to create an admin user
+                mongo --eval "db.getSiblingDB('admin').createUser({
+                      user : \"$MONGO_USER\",
+                      pwd  : \"$MONGO_PASSWORD\",
+                      roles: [ { role: 'root', db: 'admin' } ]
+                });"
+                echo "STATEFULSET_NAME: $STATEFULSET_NAME \n MACHINE_MEMORY: $MACHINE_MEMORY";
+              fi && tailf /var/log/mongod.log
           # resources:
           #   requests:
           #     cpu: 1
@@ -93,6 +138,21 @@ spec:
 # provisioner: kubernetes.io/gce-pd
 # parameters:
 #   type: pd-ssd
+# apiVersion: "v1"
+# ---
+# kind: "PersistentVolume"
+# metadata:
+#   name: data-volume-INST
+# spec:
+#   capacity:
+#     storage: 10Gi
+#   accessModes:
+#     - ReadWriteOnce
+#   persistentVolumeReclaimPolicy: Retain
+#   storageClassName: fast
+#   gcePersistentDisk:
+#     fsType: xfs
+#     pdName: pd-ssd-disk-INST
 ---
 # Local storage
 kind: StorageClass
