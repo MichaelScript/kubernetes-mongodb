@@ -2,7 +2,7 @@
 Working mongodb replica sets with kubernetes
 
 
-First generate a secret using the generate secret script `sh generate-secret.sh`
+You'll need a secret for your mongodb key if you don't have one already: `sh generate-secret.sh`
 
 ```
 kubectl create -f mongodb.yaml
@@ -14,6 +14,7 @@ This will create a mongodb replica set across three nodes with an admin account 
 Other useful things:
 Statefulsets aren't deleted in the same way as other things so here is an easy teardown for debugging stuff:
 ```
+# Note you wouldn't want to do this normally.
 kubectl delete statefulsets mongod --force --grace-period=0 --cascade=false;
 kubectl delete services mongodb-service;
 kubectl delete pods all --grace-period=0 --force;
