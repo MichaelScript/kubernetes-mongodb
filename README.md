@@ -8,7 +8,7 @@ First generate a secret using the generate secret script `sh generate-secret.sh`
 kubectl create -f mongodb.yaml
 ```
 
-This will create a mongodb replica set across three nodes 
+This will create a mongodb replica set across three nodes with an admin account that has credentials you define with environment variables.
 
 
 Other useful things:
