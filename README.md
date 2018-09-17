@@ -21,6 +21,10 @@ kubectl delete services mongodb-service;
 kubectl delete pods all --grace-period=0 --force;
 ```
 
+# Watch out, your stateful sets aren't guaranteed to be assigned the same node on restart
+This can lead to an issue when restarting clusters for an update (i.e: new kube version). I will create an automated fix for this when I have more time but for now you can just kill your other pods so they get assigned to the right things. what lol
+
+
 
 The majority of the yaml is based on:
 https://pauldone.blogspot.com/2017/06/deploying-mongodb-on-kubernetes-gke25.html
