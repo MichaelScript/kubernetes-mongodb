@@ -13,7 +13,7 @@ This will create a mongodb replica set across three nodes with an admin account 
 
 
 Other useful things:
-Statefulsets aren't deleted in the same way (because of a bug I believe) as other things so here is an easy teardown for debugging stuff:
+If you are having trouble deleting statefulsets while setting things up / testing (don't do this in production)
 ```
 # Note you wouldn't want to do this normally.
 kubectl delete statefulsets mongod --force --grace-period=0 --cascade=false;
